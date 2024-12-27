@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ product.type }} - Sportify{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Product Image -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <img src="{{ url_for('static', filename='images/placeholder.jpg') }}"
+                     class="card-img-top img-fluid"
+                     alt="{{ product.type }}"
+                     style="object-fit: cover; height: 400px;">
+            </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">{{ product.type }}</h2>
+
+                <!-- Price Section -->
+                <div class="mb-4">
+                    {% if promotion %}
+                    <div class="d-flex align-items-center">
+                        <del class="text-muted h5 mb-0">${{ "%.2f"|format(promotion.old_price) }}</del>
+                        <span class="text-danger h3 mb-0 ms-3">${{ "%.2f"|format(promotion.discounted_price) }}</span>
+                        <span class="badge bg-danger ms-3">SALE</span>
+                    </div>
+                    {% else %}
+                    <span class="h3">${{ "%.2f"|format(product.price) }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Product Details -->
+                <div class="mb-4">
+                    <h5>Product Details</h5>
+                    <p><strong>Size:</strong> {{ product.size }}</p>
+                    <p><strong>Stock:</strong> {{ product.quantity }} available</p>
+                </div>
+
+                <!-- Add to Cart Button -->
+                {% if current_user.is_authenticated %}
+                    <button id="addToCartButton" 
+                            class="btn btn-primary btn-lg w-100"
+                            onclick="addToCart({{ product.id }}, '{{ product.__class__.__name__ }}')"
+                            {% if product.quantity <= 0 %}disabled{% endif %}>
+                        Add to Cart
+                    </button>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-info btn-lg w-100">Login to Add to Cart</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Flash Message Container -->
+<div id="messageContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log('Script loaded'); // Debug log 1
+
+function showMessage(message, type) {
+    console.log('Showing message:', message, type); // Debug log 2
+    const messageContainer = document.getElementById('messageContainer');
+    messageContainer.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+}
+
+function addToCart(productId, productType) {
+    console.log('Add to cart function called with:', productId, productType); // Debug log 3
+    
+    // Disable the button
+    const button = document.getElementById('addToCartButton');
+    button.disabled = true;
+    button.textContent = 'Adding...';
+    
+    const data = {
+        product_id: productId,
+        product_type: productType,
+        quantity: 1
+    };
+    
+    console.log('Sending request with data:', data); // Debug log 4
+
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log('Received response:', response); // Debug log 5
+        return response.json();
+    })
+    .then(data => {
+        console.log('Received data:', data); // Debug log 6
+        showMessage('Item added to cart successfully!', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+    })
+    .catch(error => {
+        console.error('Error occurred:', error); // Debug log 7
+        showMessage('Failed to add item to cart. Please try again.', 'danger');
+        button.disabled = false;
+        button.textContent = 'Add to Cart';
+    });
+}
+</script>
+{% endblock %}

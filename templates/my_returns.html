@@ -1,0 +1,72 @@
+<!-- templates/my_returns.html -->
+{% extends "base.html" %} {% block title %}My Returns - Sportify{% endblock %}
+{% block content %}
+<section class="my-returns py-5">
+  <div class="container">
+    <h2 class="mb-4">My Return Requests</h2>
+
+    <!-- Flash Messages -->
+    <div id="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Return ID</th>
+          <th>Invoice ID</th>
+          <th>Product Type</th>
+          <th>Product ID</th>
+          <th>Reason</th>
+          <th>Request Date</th>
+          <th>Status</th>
+          <th>Refund Amount</th>
+          <th>Replacement Product</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for return_req in return_requests %}
+        <tr>
+          <td>{{ return_req.id }}</td>
+          <td>{{ return_req.invoice_id }}</td>
+          <td>{{ return_req.product_type }}</td>
+          <td>{{ return_req.product_id }}</td>
+          <td>{{ return_req.reason }}</td>
+          <td>{{ return_req.request_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          <td>{{ return_req.status }}</td>
+          <td>
+            {% if return_req.refund_amount %} ${{
+            "{:.2f}".format(return_req.refund_amount) }} {% else %} N/A {% endif
+            %}
+          </td>
+          <td>
+            {% if return_req.replacement_product_id %} {% set
+            replacement_product = return_req.get_product() %} {% if
+            replacement_product %} {{ replacement_product.type }} {% else %} N/A
+            {% endif %} {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if not return_requests %}
+    <p>You have no return requests.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

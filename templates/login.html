@@ -1,0 +1,189 @@
+<!-- templates/login.html -->
+{% extends "base.html" %} {% block title %}Login - Sportify{% endblock %} {%
+block content %}
+<!-- Login Section -->
+<section class="login-section py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <!-- Login Card -->
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0">
+          <div class="card-body p-5">
+            <h3 class="card-title text-center mb-4 fw-bold">Welcome Back!</h3>
+            <!-- Flash Messages Container -->
+            <div id="flash-messages">
+              {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %} {% for category, message in messages %}
+              <div
+                class="alert alert-{{ category }} alert-dismissible fade show"
+                role="alert"
+              >
+                {{ message }}
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="alert"
+                  aria-label="Close"
+                ></button>
+              </div>
+              {% endfor %} {% endif %} {% endwith %}
+            </div>
+            <!-- Login Form -->
+            <form id="login-form">
+              <!-- Username Field -->
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-user"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="username"
+                    name="username"
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Password Field -->
+              <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Submit Button -->
+              <div class="d-grid">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg"
+                  id="login-button"
+                >
+                  <span id="login-button-text">Login</span>
+                  <span
+                    id="login-button-spinner"
+                    class="spinner-border spinner-border-sm d-none"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                </button>
+              </div>
+            </form>
+            <!-- Sign Up Prompt -->
+            <div class="text-center mt-3">
+              <p class="mb-0">
+                Don't have an account?
+                <a href="{{ url_for('signup') }}" class="text-decoration-none"
+                  >Sign Up</a
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JavaScript for Handling Form Submission -->
+<script>
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const loginForm = document.getElementById("login-form");
+    const flashMessagesContainer = document.getElementById("flash-messages");
+    const loginButton = document.getElementById("login-button");
+    const loginButtonText = document.getElementById("login-button-text");
+    const loginButtonSpinner = document.getElementById("login-button-spinner");
+
+    loginForm.addEventListener("submit", function (event) {
+      event.preventDefault(); // Prevent the default form submission
+
+      // Show loading spinner and disable button
+      loginButtonText.textContent = "Logging in...";
+      loginButtonSpinner.classList.remove("d-none");
+      loginButton.disabled = true;
+
+      // Collect form data
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      // Basic client-side validation
+      if (username === "" || password === "") {
+        displayFlashMessage(
+          "danger",
+          "Please enter both username and password."
+        );
+        resetLoginButton();
+        return;
+      }
+
+      // Prepare the payload
+      const payload = {
+        username: username,
+        password: password,
+      };
+
+      // Send the POST request with JSON data
+      fetch("{{ url_for('login') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.token) {
+            // Store the token in localStorage
+            localStorage.setItem("token", data.token);
+            // Redirect to the homepage or update the UI
+            window.location.href = "{{ url_for('index') }}";
+          } else {
+            // Display the error message
+            displayFlashMessage("danger", data.error || "Invalid credentials.");
+            resetLoginButton();
+          }
+        })
+        .catch((error) => {
+          // Display the error message
+          displayFlashMessage("danger", error.message);
+          resetLoginButton();
+        });
+    });
+
+    // Function to display flash messages
+    function displayFlashMessage(category, message) {
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${category} alert-dismissible fade show`;
+      alertDiv.role = "alert";
+      alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+      flashMessagesContainer.innerHTML = ""; // Clear existing messages
+      flashMessagesContainer.appendChild(alertDiv);
+    }
+
+    // Function to reset the login button to its original state
+    function resetLoginButton() {
+      loginButtonText.textContent = "Login";
+      loginButtonSpinner.classList.add("d-none");
+      loginButton.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

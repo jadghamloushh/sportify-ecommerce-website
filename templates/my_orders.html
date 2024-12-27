@@ -1,0 +1,109 @@
+<!-- templates/my_orders.html -->
+
+{% extends "base.html" %} {% block title %}My Orders - Sportify{% endblock %} {%
+block content %}
+<section class="my-orders py-5">
+  <div class="container">
+    <h2 class="mb-4">My Orders</h2>
+
+    <!-- Flash Messages -->
+    <div id="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    <!-- Orders Table -->
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Invoice ID</th>
+            <th>Product Type</th>
+            <th>Product ID</th>
+            <th>Quantity</th>
+            <th>Price per Unit</th>
+            <th>Total Price</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in invoices_with_returns %} {% set invoice = item.invoice
+          %} {% set return_request = item.return_request %}
+          <tr>
+            <td>{{ invoice.invoice_id }}</td>
+            <td>{{ invoice.product_type }}</td>
+            <td>{{ invoice.product_id }}</td>
+            <td>{{ invoice.quantity }}</td>
+            <td>${{ "{:.2f}".format(invoice.price) }}</td>
+            <td>${{ "{:.2f}".format(invoice.total_price) }}</td>
+            <td>{{ invoice.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>
+              {% if invoice.status == "Paid" %}
+              <span class="badge bg-primary">{{ invoice.status }}</span>
+              {% elif invoice.status == "Shipped" %}
+              <span class="badge bg-info">{{ invoice.status }}</span>
+              {% elif invoice.status == "Delivered" %}
+              <span class="badge bg-success">{{ invoice.status }}</span>
+              {% elif invoice.status == "Cancelled" %}
+              <span class="badge bg-danger">{{ invoice.status }}</span>
+              {% else %}
+              <span class="badge bg-secondary">{{ invoice.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not return_request %} {% if invoice.status in ["Paid",
+              "Shipped"] %}
+              <a
+                href="{{ url_for('request_return', invoice_id=invoice.invoice_id) }}"
+                class="btn btn-sm btn-warning"
+              >
+                Request Return
+              </a>
+              {% else %} N/A {% endif %} {% elif return_request.status ==
+              "Pending" %}
+              <span class="badge bg-warning">Return Pending</span>
+              {% elif return_request.status in ["Approved", "Denied",
+              "Completed"] %}
+              <span class="badge bg-secondary"
+                >Return {{ return_request.status }}</span
+              >
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if pagination %}
+    <div class="d-flex justify-content-center">{{ pagination.links }}</div>
+    {% endif %}
+
+    <!-- If no orders are available -->
+    {% if not invoices_with_returns %}
+    <div class="text-center">
+      <p>
+        You have no orders yet. Start shopping
+        <a href="{{ url_for('index') }}">here</a>!
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

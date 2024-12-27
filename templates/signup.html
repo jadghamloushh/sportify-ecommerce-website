@@ -1,0 +1,135 @@
+<!-- templates/signup.html -->
+{% extends "base.html" %} {% block title %}Sign Up - Sportify{% endblock %} {%
+block content %}
+<!-- Sign Up Section -->
+<section class="signup-section py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <!-- Sign Up Card -->
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0">
+          <div class="card-body p-5">
+            <h3 class="card-title text-center mb-4 fw-bold">
+              Create Your Account
+            </h3>
+            {% with messages = get_flashed_messages(with_categories=true) %} {%
+            if messages %} {% for category, message in messages %}
+            <div
+              class="alert alert-{{ category }} alert-dismissible fade show"
+              role="alert"
+            >
+              {{ message }}
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"
+              ></button>
+            </div>
+            {% endfor %} {% endif %} {% endwith %}
+            <form action="{{ url_for('signup') }}" method="POST">
+              <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+              />
+
+              <!-- Username Field -->
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-user"></i
+                  ></span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="username"
+                    name="username"
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Email Field -->
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-envelope"></i
+                  ></span>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Password Field -->
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-lock"></i
+                  ></span>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    placeholder="Create a password"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Confirm Password Field -->
+              <div class="mb-4">
+                <label for="confirm_password" class="form-label"
+                  >Confirm Password</label
+                >
+                <div class="input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-lock"></i
+                  ></span>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="confirm_password"
+                    name="confirm_password"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+              </div>
+              <!-- Submit Button -->
+              <div class="d-grid">
+                <button type="submit" class="btn btn-success btn-lg">
+                  Sign Up
+                </button>
+              </div>
+            </form>
+            <!-- Sign In Prompt -->
+            <div class="text-center mt-3">
+              <p class="mb-0">
+                Already have an account?
+                <a href="{{ url_for('login') }}" class="text-decoration-none"
+                  >Login</a
+                >
+              </p>
+            </div>
+          </div>
+          <!-- Optional: Card Footer (Commented Out) -->
+          <!--
+                        <div class="card-footer text-center bg-transparent">
+                            <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}" class="text-decoration-none">Login</a></p>
+                        </div>
+                        -->
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

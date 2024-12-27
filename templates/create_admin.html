@@ -1,0 +1,104 @@
+<!-- templates/create_admin.html -->
+{% extends "base.html" %}
+{% block title %}Create New Admin User - Sportify{% endblock %}
+{% block content %}
+<section class="create-admin-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <!-- Flash Messages Container -->
+                <div id="flash-messages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        <h3 class="card-title text-center mb-4 fw-bold">Create New Admin User</h3>
+                        
+                        <!-- Create Admin Form -->
+                        <form id="create-admin-form" method="POST" action="{{ url_for('create_user') }}">
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
+                            <!-- Username Field -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                            </div>
+
+                            <!-- Password Field -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                            </div>
+
+                            <!-- Role Field -->
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="" selected disabled>Select Role</option>
+                                    <option value="super_admin">Super Administrator</option>
+                                    <option value="inventory_admin">Inventory Administrator</option>
+                                    <option value="order_admin">Order Administrator</option>
+                                    <option value="product_admin">Product Administrator</option>
+                                    <option value="user">Regular User</option>
+                                </select>
+                            </div>
+
+                            <!-- Description Field -->
+                            <div class="mb-4">
+                                <label for="description" class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            </div>
+
+                            <!-- Submit Buttons -->
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submit-button">
+                                    <span id="button-text">Create User</span>
+                                    <span id="button-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                                <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-lg">Back to Admin Panel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('create-admin-form');
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
+
+        form.addEventListener('submit', function() {
+            // Show loading state
+            buttonText.textContent = 'Creating...';
+            buttonSpinner.classList.remove('d-none');
+            submitButton.disabled = true;
+        });
+    });
+</script>
+{% endblock %}

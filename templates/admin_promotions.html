@@ -1,0 +1,84 @@
+<!-- templates/admin_promotions.html -->
+{% extends "admin.html" %} {% block title %}Manage Promotions{% endblock %} {%
+    block content %}
+    <div class="container mt-4">
+      <h2>Manage Promotions</h2>
+      <a href="{{ url_for('add_promotion') }}" class="btn btn-primary mb-3"
+        >Add New Promotion</a
+      >
+    
+      {% if promotions %}
+      <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Product Type</th>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Old Price</th>
+            <th>Discounted Price</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for promo in promotions %}
+          <tr>
+            <td>{{ promo.id }}</td>
+            <td>{{ promo.product_type }}</td>
+            <td>{{ promo.product_id }}</td>
+            <td>
+              {% set product = promo.get_product() %} {% if product %} {{
+              product.type }} {% else %} N/A {% endif %}
+            </td>
+            <td>${{ "%.2f"|format(promo.old_price) }}</td>
+            <td>${{ "%.2f"|format(promo.discounted_price) }}</td>
+            <td>{{ promo.start_date.strftime('%Y-%m-%d') }}</td>
+            <td>
+              {% if promo.end_date %} {{ promo.end_date.strftime('%Y-%m-%d') }} {%
+              else %} N/A {% endif %}
+            </td>
+            <td>{{ 'Yes' if promo.is_active() else 'No' }}</td>
+            <td>
+              <form
+                action="{{ url_for('remove_promotion', promotion_id=promo.id) }}"
+                method="POST"
+                style="display: inline"
+              >
+                {{ csrf_token() }}
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-danger"
+                  onclick="return confirm('Are you sure you want to remove this promotion?');"
+                >
+                  Remove
+                </button>
+              </form>
+              {% if promo.is_active() %}
+              <form
+                action="{{ url_for('deactivate_promotion', promotion_id=promo.id) }}"
+                method="POST"
+                style="display: inline"
+              >
+                {{ csrf_token() }}
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-warning"
+                  onclick="return confirm('Are you sure you want to deactivate this promotion?');"
+                >
+                  Deactivate
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No promotions available.</p>
+      {% endif %}
+    </div>
+    {% endblock %}

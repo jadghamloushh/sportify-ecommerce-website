@@ -1,0 +1,134 @@
+<!-- templates/checkout.html -->
+{% extends "base.html" %} {% block title %}Checkout - Sportify{% endblock %} {%
+block content %}
+<section class="checkout-section py-5">
+  <div class="container">
+    <h2 class="text-center fw-bold mb-4">Checkout</h2>
+
+    <!-- Flash Messages -->
+    <div id="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    <!-- Cart Items Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Product</th>
+            <th>Name</th>
+            <th>Size</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cart %}
+          <tr>
+            <td>
+              <img
+                src="{{ url_for('static', filename=item.image) }}"
+                alt="{{ item.name }}"
+                width="50"
+                height="50"
+                loading="lazy"
+              />
+            </td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.size }}</td>
+            <!-- Correctly referencing size from cart_details -->
+            <td>${{ "{:.2f}".format(item.price) }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ "{:.2f}".format(item.total_price) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="5" class="text-end">Subtotal:</th>
+            <th>${{ "{:.2f}".format(subtotal) }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Payment Form -->
+    <div class="payment-form mt-5">
+      <h3>Payment Details</h3>
+      <form method="POST" action="{{ url_for('checkout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="mb-3">
+          <label for="cardholder_name" class="form-label"
+            >Cardholder Name</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            id="cardholder_name"
+            name="cardholder_name"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="card_number" class="form-label">Card Number</label>
+          <input
+            type="text"
+            class="form-control"
+            id="card_number"
+            name="card_number"
+            pattern="\d{16}"
+            maxlength="16"
+            placeholder="1234567812345678"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="expiration_date" class="form-label"
+            >Expiration Date (MM/YY)</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            id="expiration_date"
+            name="expiration_date"
+            pattern="(0[1-9]|1[0-2])\/\d{2}"
+            placeholder="MM/YY"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="cvv" class="form-label">CVV</label>
+          <input
+            type="text"
+            class="form-control"
+            id="cvv"
+            name="cvv"
+            pattern="\d{3}"
+            maxlength="3"
+            placeholder="123"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">
+          Proceed to Payment
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

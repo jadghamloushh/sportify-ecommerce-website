@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ product.type }} - Sportify{% endblock %}
+
+{% block content %}
+<!-- First, define the function -->
+<script>
+function handleAddToCart(productId, productType) {
+    console.log('handleAddToCart called with:', productId, productType);
+    
+    // Show an alert to verify function is called
+    alert('Adding to cart...');
+    
+    // Prepare the data
+    const data = {
+        product_id: productId,
+        product_type: productType,
+        quantity: 1
+    };
+    
+    console.log('Sending data:', data);
+    
+    // Send fetch request
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        alert('Added to cart successfully!');
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to add to cart: ' + error);
+    });
+}
+</script>
+
+<div class="container py-5">
+    <!-- Flash Messages Container -->
+    <div id="messageContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
+
+    <div class="row">
+        <!-- Product Image -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <img src="{{ url_for('static', filename='images/placeholder.jpg') }}"
+                     class="card-img-top img-fluid"
+                     alt="{{ product.type }}"
+                     style="object-fit: cover; height: 400px;">
+            </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">{{ product.type }}</h2>
+
+                <!-- Price Section -->
+                <div class="mb-4">
+                    {% if promotion %}
+                    <div class="d-flex align-items-center">
+                        <del class="text-muted h5 mb-0">${{ "%.2f"|format(promotion.old_price) }}</del>
+                        <span class="text-danger h3 mb-0 ms-3">${{ "%.2f"|format(promotion.discounted_price) }}</span>
+                        <span class="badge bg-danger ms-3">SALE</span>
+                    </div>
+                    {% else %}
+                    <span class="h3">${{ "%.2f"|format(product.price) }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Product Details -->
+                <div class="mb-4">
+                    <h5>Product Details</h5>
+                    <p><strong>Size:</strong> {{ product.size }}</p>
+                    <p><strong>Stock:</strong> {{ product.quantity }} available</p>
+                </div>
+
+                <!-- Add to Cart Section -->
+                {% if current_user.is_authenticated %}
+                    <button type="button"
+                            onclick="console.log('Button clicked'); handleAddToCart({{ product.id }}, '{{ product.__class__.__name__ }}')"
+                            class="btn btn-primary btn-lg w-100">
+                        Add to Cart
+                    </button>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-info btn-lg w-100">Login to Add to Cart</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

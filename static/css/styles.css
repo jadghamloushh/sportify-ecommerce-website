@@ -1,0 +1,392 @@
+/* static/css/styles.css */
+
+/* =====================================
+   Typography
+   ===================================== */
+   body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', sans-serif;
+    color: #343a40;
+}
+
+h3.card-title {
+    font-family: 'Oswald', sans-serif;
+    color: #343a40;
+}
+
+/* =====================================
+   Navbar Styles
+   ===================================== */
+.navbar {
+    font-size: 1rem;
+}
+
+.navbar-brand {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.nav-link {
+    font-size: 1rem;
+    color: #ffffff !important;
+}
+
+.nav-link.btn {
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+}
+
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' 
+    xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 
+    0.7%29' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 
+    7h22M4 15h22M4 23h22'/ %3E%3C/svg%3E");
+}
+
+/* =====================================
+   Hero Section
+   ===================================== */
+.hero-section {
+    position: relative;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.hero-section .container {
+    position: relative;
+    z-index: 1;
+}
+
+/* =====================================
+   Features Section
+   ===================================== */
+.features-section {
+    padding: 60px 0;
+    background-color: #ffffff;
+}
+
+.features-section .card {
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.features-section .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.features-section .card i {
+    color: #007bff;
+}
+
+/* =====================================
+   Products Section
+   ===================================== */
+.products-section {
+    padding: 60px 0;
+}
+
+.products-section .card-img-top {
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.products-section .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.products-section .card-text {
+    font-size: 0.95rem;
+    color: #6c757d;
+}
+
+.products-section .btn-primary {
+    background-color: #007bff;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.products-section .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* =====================================
+   Testimonials Section
+   ===================================== */
+.testimonials-section {
+    padding: 60px 0;
+    background-color: #f8f9fa;
+}
+
+.testimonials-section .card {
+    border-left: 5px solid #007bff;
+    background-color: #ffffff;
+}
+
+.testimonials-section .card img {
+    object-fit: cover;
+    border: 3px solid #007bff;
+}
+
+/* =====================================
+   Call to Action Section
+   ===================================== */
+.cta-section {
+    background: linear-gradient(45deg, #ff7e5f, #feb47b);
+    color: white;
+    padding: 60px 0;
+}
+
+.cta-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.cta-section .btn-primary {
+    font-size: 1.2rem;
+    padding: 0.75rem 2rem;
+}
+
+/* =====================================
+   Footer
+   ===================================== */
+footer {
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+footer a {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+footer .social-icons a {
+    color: #ffffff;
+    margin: 0 10px;
+    transition: color 0.3s ease;
+}
+
+footer .social-icons a:hover {
+    color: #007bff;
+}
+
+/* =====================================
+   Login Section
+   ===================================== */
+.login-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to right, #ffffff, #f8f9fa);
+    padding-top: 70px; /* To offset fixed navbar height */
+}
+
+.login-section .card {
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.login-section .card-body {
+    padding: 2rem;
+}
+
+.login-section .card-title {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.login-section .input-group-text {
+    background-color: #ffffff;
+    border: none;
+}
+
+.login-section .form-control {
+    border-left: none;
+}
+
+.login-section .btn-primary {
+    background-color: #007bff;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.login-section .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.login-section .alert {
+    border-radius: 10px;
+}
+
+/* =====================================
+   Forms and Inputs
+   ===================================== */
+.form-label {
+    font-weight: 600;
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #007bff;
+}
+
+/* =====================================
+   Miscellaneous
+   ===================================== */
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+}
+
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+}
+
+.text-decoration-none:hover {
+    text-decoration: underline;
+}
+
+
+/* =====================================
+   Sign Up Section
+   ===================================== */
+   .signup-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to right, #ffffff, #f8f9fa);
+    padding-top: 70px; /* To offset fixed navbar height */
+}
+
+.signup-section .card {
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.signup-section .card-body {
+    padding: 2rem;
+}
+
+.signup-section .card-title {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.signup-section .input-group-text {
+    background-color: #ffffff;
+    border: none;
+}
+
+.signup-section .form-control {
+    border-left: none;
+}
+
+.signup-section .btn-success {
+    background-color: #28a745;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.signup-section .btn-success:hover {
+    background-color: #218838;
+}
+
+.signup-section .alert {
+    border-radius: 10px;
+}
+
+@media (max-width: 576px) {
+    .signup-section {
+        padding: 20px 0;
+    }
+}
+
+
+.navbar-nav .btn-outline-light:hover {
+    background-color: #ffffff;
+    color: #343a40;
+    border-color: #ffffff;
+}
+
+@media (max-width: 992px) {
+    .navbar-nav.mx-auto {
+        justify-content: center;
+    }
+}
+
+/* static/css/styles.css */
+
+/* =====================================
+   Filter Controls Styles
+   ===================================== */
+   .filter-controls .btn {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.filter-controls .btn.active {
+    background-color: #007bff;
+    color: #ffffff;
+}
+
+/* Hover Effects for Filter Buttons */
+.filter-controls .btn:hover {
+    background-color: #0056b3;
+    color: #ffffff;
+}
+
+/* =====================================
+   Item Block Hover Effects
+   ===================================== */
+.item-block .card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.2s;
+}
+
+/* =====================================
+   Category Headings Styles
+   ===================================== */
+.category-section h3 {
+    color: #343a40;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+/* =====================================
+   Responsive Image Handling
+   ===================================== */
+@media (max-width: 768px) {
+    .item-block .card-img-top {
+        height: 150px;
+    }
+}

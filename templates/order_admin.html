@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Management Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* Keep your existing styles */
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        .status-Pending { background-color: #ffc107; color: #000; }
+        .status-Processing { background-color: #17a2b8; color: #fff; }
+        .status-Shipped { background-color: #007bff; color: #fff; }
+        .status-Delivered { background-color: #28a745; color: #fff; }
+        .status-Cancelled { background-color: #dc3545; color: #fff; }
+        .status-Paid { background-color: #20c997; color: #fff; }
+        
+        .stats-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filters-section {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <!-- Keep your existing flash messages section -->
+        
+        <!-- Statistics Cards -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="stats-card bg-primary text-white">
+                    <h5>Total Orders</h5>
+                    <h3>{{ total_orders }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card bg-success text-white">
+                    <h5>Total Revenue</h5>
+                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                </div>
+            </div>
+            {% for status, count in status_counts.items() %}
+            <div class="col-md-2">
+                <div class="stats-card status-{{ status }} text-white">
+                    <h5>{{ status }}</h5>
+                    <h3>{{ count }}</h3>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section mt-4">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <button type="button" id="exportBtn" class="btn btn-success">
+                            <i class="bi bi-download"></i> Export to CSV
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ invoice.invoice_id }}</td>
+                        <td>{{ invoice.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ invoice.user.username }}</td>
+                        <td>
+                            {% set product = invoice.get_product() %}
+                            {{ product.type if product else 'Unknown Product' }}
+                        </td>
+                        <td>{{ invoice.quantity }}</td>
+                        <td>${{ "%.2f"|format(invoice.total_price) }}</td>
+                        <td>
+                            <span class="status-badge status-{{ invoice.status }}">
+                                {{ invoice.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="viewOrderDetails({{ invoice.invoice_id }})">
+                                View Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="orderDetailsContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function viewOrderDetails(orderId) {
+        fetch(`/api/order-details/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                const modalContent = document.getElementById('orderDetailsContent');
+                let statusHistoryHtml = '';
+                if (data.status_history && data.status_history.length > 0) {
+                    statusHistoryHtml = `
+                        <h6>Status History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Updated By</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.status_history.map(history => `
+                                        <tr>
+                                            <td>${history.timestamp}</td>
+                                            <td>${history.old_status}</td>
+                                            <td>${history.new_status}</td>
+                                            <td>${history.updated_by || 'System'}</td>
+                                            <td>${history.notes || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                modalContent.innerHTML = `
+                    <div class="container-fluid">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Order Information</h6>
+                                <p><strong>Order ID:</strong> ${data.invoice_id}</p>
+                                <p><strong>Customer:</strong> ${data.user_name}</p>
+                                <p><strong>Date:</strong> ${data.date}</p>
+                                <p><strong>Status:</strong> <span class="status-badge status-${data.status}">${data.status}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Product Information</h6>
+                                <p><strong>Product:</strong> ${data.product_name}</p>
+                                <p><strong>Quantity:</strong> ${data.quantity}</p>
+                                <p><strong>Price per Unit:</strong> $${data.price_per_unit.toFixed(2)}</p>
+                                <p><strong>Total Price:</strong> $${data.total_price.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <form onsubmit="updateOrderStatus(event, ${data.invoice_id})" class="card p-3">
+                                    <h6>Update Status</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <select name="new_status" class="form-select" required>
+                                                <option value="">Select New Status</option>
+                                                <option value="Processing">Processing</option>
+                                                <option value="Shipped">Shipped</option>
+                                                <option value="Delivered">Delivered</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="text" name="notes" class="form-control" placeholder="Add notes (optional)">
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="submit" class="btn btn-primary">Update Status</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        ${statusHistoryHtml}
+                    </div>
+                `;
+                
+                new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function updateOrderStatus(event, orderId) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        formData.append('invoice_id', orderId);  // Add this line to include the invoice_id
+        
+        fetch('/messi/admin/orders/update_status', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Error updating status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to update status. Please try again.');
+        });
+    }
+    document.getElementById('exportBtn').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('filterForm'));
+        
+        fetch('/messi/admin/orders/export', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(error => console.error('Error:', error));
+    });
+    </script>
+</body>
+</html>

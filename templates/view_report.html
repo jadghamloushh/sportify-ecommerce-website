@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Inventory Report</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Inventory Report</h1>
+      <div class="report-details">
+        <h2>
+          Report Generated: {{ report.date_generated.strftime('%Y-%m-%d
+          %H:%M:%S') }}
+        </h2>
+
+        <section class="popular-product">
+          <h3>Most Popular Product</h3>
+          {% if popular_product %}
+          <p>Product: {{ popular_product.type }}</p>
+          <p>Total Quantity Sold: {{ report.total_quantity }}</p>
+          <p>Current Stock: {{ popular_product.quantity }}</p>
+          {% else %}
+          <p>Product details not available</p>
+          {% endif %}
+        </section>
+
+        <section class="inventory-analysis">
+          <h3>Inventory Analysis</h3>
+          <p>Inventory Turnover Rate: {{ report.inventory_turnover }}</p>
+          <p>
+            {% if report.inventory_turnover > 4 %}
+            <span class="good">Healthy turnover rate</span>
+            {% else %}
+            <span class="warning">Consider inventory optimization</span>
+            {% endif %}
+          </p>
+        </section>
+
+        <section class="future-demand">
+          <h3>Future Demand Prediction</h3>
+          <p>{{ report.future_demand }}</p>
+        </section>
+
+        <div class="actions">
+          <a href="{{ url_for('admin') }}" class="btn btn-secondary"
+            >Back to Admin Dashboard</a
+          >
+          <a href="{{ url_for('generate_report') }}" class="btn btn-primary"
+            >Generate New Report</a
+          >
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

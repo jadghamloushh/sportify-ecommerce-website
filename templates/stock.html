@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Stock Management</title>
+    <style>
+      table {
+        border-collapse: collapse;
+        margin-bottom: 50px;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #d4d4d4;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      h2 {
+        margin-top: 50px;
+      }
+      .container {
+        width: 95%;
+        margin: auto;
+        overflow: hidden;
+      }
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #4287f5;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+      .btn:hover {
+        background-color: #306acb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Stock Management</h1>
+
+      <!-- Navigation Buttons -->
+      <a href="{{ url_for('admin_dashboard') }}" class="btn"
+        >Back to Dashboard</a
+      >
+      <a href="{{ url_for('generate_report') }}" class="btn"
+        >Generate Inventory Report</a
+      >
+
+      <!-- Users Table -->
+      <h2>Users</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>UID</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Role</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.uid }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.password }}</td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Footwear Table -->
+      <h2>Footwear</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in footwear %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.quantity }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Footwear Subcategories Table -->
+      <h2>Footwear Subcategories</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Footwear ID</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Size</th>
+            <th>Quantity</th>
+            <th>For Gender</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in footwear_subcategories %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.footwear_id }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.price }}</td>
+            <td>{{ item.size }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.for_gender }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Repeat similar sections for other categories and subcategories -->
+
+      <!-- Example: Activewear Tops Table -->
+      <h2>Activewear Tops</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in activewear_tops %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.quantity }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Add other tables similarly -->
+    </div>
+  </body>
+</html>

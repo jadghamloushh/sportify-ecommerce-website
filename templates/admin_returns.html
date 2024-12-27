@@ -1,0 +1,121 @@
+<!-- templates/admin_returns.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Manage Returns - Admin Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Additional styling if needed */
+      .action-btn {
+        margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <h1>Manage Returns</h1>
+
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Return ID</th>
+            <th>Invoice ID</th>
+            <th>User</th>
+            <th>Product Type</th>
+            <th>Product ID</th>
+            <th>Reason</th>
+            <th>Request Date</th>
+            <th>Status</th>
+            <th>Refund Amount</th>
+            <th>Replacement Product</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for return_req in return_requests %}
+          <tr>
+            <td>{{ return_req.id }}</td>
+            <td>{{ return_req.invoice_id }}</td>
+            <td>{{ return_req.user.username }}</td>
+            <td>{{ return_req.product_type }}</td>
+            <td>{{ return_req.product_id }}</td>
+            <td>{{ return_req.reason }}</td>
+            <td>{{ return_req.request_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ return_req.status }}</td>
+            <td>
+              {% if return_req.refund_amount %} ${{
+              "{:.2f}".format(return_req.refund_amount) }} {% else %} N/A {%
+              endif %}
+            </td>
+            <td>
+              {% if return_req.replacement_product_id %} {% set
+              replacement_product = return_req.get_product() %} {% if
+              replacement_product %} {{ replacement_product.type }} {% else %}
+              N/A {% endif %} {% else %} N/A {% endif %}
+            </td>
+            <td>
+              {% if return_req.status == "Pending" %}
+              <form
+                method="POST"
+                action="{{ url_for('process_return', return_id=return_req.id) }}"
+                style="display: inline"
+              >
+                <input type="hidden" name="action" value="approve" />
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-success action-btn"
+                  onclick="return confirm('Approve this return request?');"
+                >
+                  Approve
+                </button>
+              </form>
+              <form
+                method="POST"
+                action="{{ url_for('process_return', return_id=return_req.id) }}"
+                style="display: inline"
+              >
+                <input type="hidden" name="action" value="deny" />
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-danger action-btn"
+                  onclick="return confirm('Deny this return request?');"
+                >
+                  Deny
+                </button>
+              </form>
+              {% else %} N/A {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if not return_requests %}
+      <p>No return requests available.</p>
+      {% endif %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

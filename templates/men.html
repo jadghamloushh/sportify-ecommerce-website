@@ -1,0 +1,211 @@
+{% extends "base.html" %} {% block title %}Men - Sportify{% endblock %} {% block
+content %}
+<!-- Men Section -->
+<section class="men-section py-5">
+  <div class="container">
+    <!-- Header with Title and View Cart Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="text-center fw-bold">Men's Collection</h2>
+      <a
+        href="{{ url_for('view_cart') }}"
+        class="btn btn-success position-relative"
+      >
+        <i class="bi bi-cart"></i> View Cart {% if cart_count > 0 %}
+        <span
+          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+        >
+          {{ cart_count }}
+          <span class="visually-hidden">items in cart</span>
+        </span>
+        {% endif %}
+      </a>
+    </div>
+
+    <!-- Flash Messages Container -->
+    <div id="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="filter-controls mb-4 text-center">
+      {% for category in main_categories %}
+      <button
+        class="btn btn-outline-primary btn-sm me-2 mb-2 filter-btn"
+        data-category="{{ category }}"
+      >
+        {{ category }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Items Grid -->
+    <div class="row g-4" id="items-container">
+      {% for item in men_items %}
+      <div class="col-md-4 mb-4 item-block" data-category="{{ item.category }}">
+        <div class="card h-100 shadow-sm">
+          <img
+            src="{{ url_for('static', filename='images/' + item.image) }}"
+            class="card-img-top"
+            alt="{{ item.type }}"
+            loading="lazy"
+          />
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ item.type }}</h5>
+            <p class="card-text">Price: ${{ "{:.2f}".format(item.price) }}</p>
+            <p class="card-text">Size: {{ item.size }}</p>
+            <p class="card-text">Quantity Available: {{ item.quantity }}</p>
+            <!-- Add to Cart Button -->
+            <button
+              class="btn btn-primary mt-auto add-to-cart-btn"
+              data-product-id="{{ item.product_id }}"
+              data-product-type="{{ item.product_type }}"
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- If no items are available -->
+    {% if not men_items %}
+    <div class="text-center">
+      <p>No items available for Men at the moment. Please check back later!</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- JavaScript for Filtering and Add to Cart -->
+<script>
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Filtering Functionality
+    const filterButtons = document.querySelectorAll(".filter-btn");
+    const items = document.querySelectorAll(".item-block");
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const category = this.getAttribute("data-category");
+
+        // Remove active class from all buttons
+        filterButtons.forEach((btn) => btn.classList.remove("active"));
+        // Add active class to the clicked button
+        this.classList.add("active");
+
+        // Show/Hide items based on category
+        items.forEach((item) => {
+          if (
+            category === "All" ||
+            item.getAttribute("data-category") === category
+          ) {
+            item.style.display = "block";
+          } else {
+            item.style.display = "none";
+          }
+        });
+      });
+    });
+
+    // Initialize by clicking the 'All' button
+    const allButton = document.querySelector(
+      '.filter-btn[data-category="All"]'
+    );
+    if (allButton) {
+      allButton.click();
+    }
+
+    // Add to Cart Functionality
+    const addToCartButtons = document.querySelectorAll(".add-to-cart-btn");
+
+    addToCartButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const productId = this.getAttribute("data-product-id");
+        const productType = this.getAttribute("data-product-type");
+        console.log("Add to Cart Clicked:");
+        console.log("Product ID:", productId);
+        console.log("Product Type:", productType);
+
+        const payload = {
+          product_id: productId,
+          product_type: productType,
+          quantity: 1,
+        };
+
+        console.log("Payload to send:", payload);
+
+        this.disabled = true;
+        this.textContent = "Adding...";
+
+        fetch("{{ url_for('add_to_cart') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+          body: JSON.stringify(payload),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Response from add_to_cart:", data);
+            if (data.success || data.message) {
+              displayFlashMessage(
+                "success",
+                data.message || "Item added to cart."
+              );
+              // Optionally update cart count dynamically
+              window.location.reload();
+            } else {
+              displayFlashMessage(
+                "danger",
+                data.error || "Failed to add item to cart."
+              );
+            }
+            this.disabled = false;
+            this.textContent = "Add to Cart";
+          })
+          .catch((error) => {
+            console.error("Error adding to cart:", error);
+            displayFlashMessage(
+              "danger",
+              "An error occurred. Please try again."
+            );
+            this.disabled = false;
+            this.textContent = "Add to Cart";
+          });
+      });
+    });
+
+    // Function to display flash messages
+    function displayFlashMessage(category, message) {
+      const flashMessagesContainer = document.getElementById("flash-messages");
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${category} alert-dismissible fade show`;
+      alertDiv.role = "alert";
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      flashMessagesContainer.innerHTML = ""; // Clear existing messages
+      flashMessagesContainer.appendChild(alertDiv);
+    }
+  });
+</script>
+{% endblock %}

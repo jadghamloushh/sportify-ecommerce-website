@@ -1,0 +1,2287 @@
+<!-- templates/admin.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Admin Dashboard</title>
+    <style>
+      /* Existing Styles */
+      table {
+        border-collapse: collapse;
+        margin-bottom: 50px;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #d4d4d4;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      h2 {
+        margin-top: 50px;
+      }
+      /* New Styles */
+      #stock-tables,
+      #promotions-section,
+      #invoices-section {
+        display: none; /* Initially hidden */
+      }
+      .btn {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-bottom: 20px;
+        margin-right: 10px; /* Space between buttons */
+      }
+      .btn:hover {
+        background-color: #0056b3;
+      }
+      .btn-success {
+        background-color: #28a745;
+      }
+      .btn-success:hover {
+        background-color: #218838;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+      }
+      .btn-secondary:hover {
+        background-color: #5a6268;
+      }
+      .btn-danger {
+        background-color: #dc3545;
+      }
+      .btn-danger:hover {
+        background-color: #c82333;
+      }
+      .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+      }
+      .btn-warning:hover {
+        background-color: #e0a800;
+      }
+      /* Additional Styling for Invoices and Promotions Tables */
+      #invoices-section table,
+      #promotions-section table {
+        width: 100%;
+      }
+      #invoices-section th,
+      #invoices-section td,
+      #promotions-section th,
+      #promotions-section td {
+        text-align: center;
+      }
+      /* Style for Actions Buttons */
+      .action-btn {
+        margin-right: 5px;
+      }
+      /* Responsive Modal */
+      @media (max-width: 768px) {
+        .modal-dialog {
+          max-width: 90%;
+        }
+      }
+    </style>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container mt-4">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <h1>Admin Dashboard</h1>
+
+      <!-- Navigation Buttons -->
+      <button id="toggle-stock" class="btn">Show Stock</button>
+      <button id="toggle-promotions" class="btn btn-secondary">
+        Show Promotions
+      </button>
+      <button id="toggle-invoices" class="btn">Show Invoices</button>
+      <button
+        id="add-product-btn"
+        class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#addProductModal"
+      >
+        Add Product
+      </button>
+      <!-- New Bulk Upload Button -->
+      <button
+        id="bulk-upload-btn"
+        class="btn btn-secondary"
+        data-bs-toggle="modal"
+        data-bs-target="#bulkUploadModal"
+      >
+        Bulk Upload
+      </button>
+      <button id="toggle-returns" class="btn btn-info">Show Returns</button>
+
+      <!-- Returns Section -->
+      <div id="returns-section" style="display: none">
+        <h2>Return Requests</h2>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Return ID</th>
+              <th>Invoice ID</th>
+              <th>User</th>
+              <th>Product Type</th>
+              <th>Product ID</th>
+              <th>Reason</th>
+              <th>Request Date</th>
+              <th>Status</th>
+              <th>Refund Amount</th>
+              <th>Replacement Product</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for return_req in return_requests %}
+            <tr>
+              <td>{{ return_req.id }}</td>
+              <td>{{ return_req.invoice_id }}</td>
+              <td>{{ return_req.user.username }}</td>
+              <td>{{ return_req.product_type }}</td>
+              <td>{{ return_req.product_id }}</td>
+              <td>{{ return_req.reason }}</td>
+              <td>
+                {{ return_req.request_date.strftime('%Y-%m-%d %H:%M:%S') }}
+              </td>
+              <td>{{ return_req.status }}</td>
+              <td>
+                {% if return_req.refund_amount %} ${{
+                "{:.2f}".format(return_req.refund_amount) }} {% else %} N/A {%
+                endif %}
+              </td>
+              <td>
+                {% if return_req.replacement_product_id %} {% set
+                replacement_product = return_req.get_product() %} {% if
+                replacement_product %} {{ replacement_product.type }} {% else %}
+                N/A {% endif %} {% else %} N/A {% endif %}
+              </td>
+              <td>
+                {% if return_req.status == "Pending" %}
+                <form
+                  method="POST"
+                  action="{{ url_for('process_return', return_id=return_req.id) }}"
+                  style="display: inline"
+                >
+                  <input type="hidden" name="action" value="approve" />
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-success action-btn"
+                    onclick="return confirm('Approve this return request?');"
+                  >
+                    Approve
+                  </button>
+                </form>
+                <form
+                  method="POST"
+                  action="{{ url_for('process_return', return_id=return_req.id) }}"
+                  style="display: inline"
+                >
+                  <input type="hidden" name="action" value="deny" />
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-danger action-btn"
+                    onclick="return confirm('Deny this return request?');"
+                  >
+                    Deny
+                  </button>
+                </form>
+                {% else %} N/A {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if not return_requests %}
+        <p>No return requests available.</p>
+        {% endif %}
+      </div>
+
+      <!-- Container for All Tables -->
+      <div id="stock-tables">
+        <!-- Users Table -->
+        <div class="table-container">
+          <h2>Users</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>UID</th>
+                <th>Username</th>
+                <!-- Removed Password column for security -->
+                <th>Role</th>
+                <th>Description</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>{{ user.uid }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.role }}</td>
+                <td>{{ user.description }}</td>
+                <td>
+                  <!-- No edit/remove for Users, but kept Actions column for consistency -->
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footwear Table -->
+        <div class="table-container">
+          <h2>Footwear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in footwear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="footwear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input type="hidden" name="product_type" value="footwear" />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footwear Subcategories Table -->
+        <div class="table-container">
+          <h2>Footwear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Footwear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in footwear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.footwear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="footwear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="footwear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Activewear Tops Table -->
+        <div class="table-container">
+          <h2>Activewear Tops (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in activewear_tops %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="activewear_tops"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="activewear_tops"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Activewear Subcategories Table -->
+        <div class="table-container">
+          <h2>Activewear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Activewear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in activewear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.activewear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="activewear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="activewear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bottoms Table -->
+        <div class="table-container">
+          <h2>Bottoms (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in bottoms %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="bottoms"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input type="hidden" name="product_type" value="bottoms" />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bottoms Subcategories Table -->
+        <div class="table-container">
+          <h2>Bottoms Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Bottoms ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in bottoms_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.bottoms_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="bottoms_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="bottoms_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Outerwear Table -->
+        <div class="table-container">
+          <h2>Outerwear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in outerwear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="outerwear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="outerwear"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Outerwear Subcategories Table -->
+        <div class="table-container">
+          <h2>Outerwear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Outerwear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in outerwear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.outerwear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="outerwear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="outerwear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recovery and Wellness Table -->
+        <div class="table-container">
+          <h2>Recovery and Wellness (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in recovery_and_wellness %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="recovery_and_wellness"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="recovery_and_wellness"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recovery Subcategories Table -->
+        <div class="table-container">
+          <h2>Recovery Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Recovery ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in recovery_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.recovery_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size or 'N/A' }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender or 'N/A' }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="recovery_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="recovery_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Accessories Table -->
+        <div class="table-container">
+          <h2>Accessories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in accessories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="accessories"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="accessories"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Accessories Subcategories Table -->
+        <div class="table-container">
+          <h2>Accessories Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Accessories ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in accessories_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.accessories_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="accessories_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="accessories_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Swimwear Table -->
+        <div class="table-container">
+          <h2>Swimwear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in swimwear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="swimwear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input type="hidden" name="product_type" value="swimwear" />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Swimwear Subcategories Table -->
+        <div class="table-container">
+          <h2>Swimwear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Swimwear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in swimwear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.swimwear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="swimwear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="swimwear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Compression Wear Table -->
+        <div class="table-container">
+          <h2>Compression Wear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in compression_wear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="compression_wear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="compression_wear"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Compression Subcategories Table -->
+        <div class="table-container">
+          <h2>Compression Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Compression Wear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in compression_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.compression_wear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="compression_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="compression_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Specialty Sportswear Table -->
+        <div class="table-container">
+          <h2>Specialty Sportswear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in specialty_sportswear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="specialty_sportswear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="specialty_sportswear"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Specialty Sportswear Subcategories Table -->
+        <div class="table-container">
+          <h2>Specialty Sportswear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Specialty Sportswear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in specialty_sportswear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.specialty_sportswear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="specialty_sportswear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="specialty_sportswear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Protective Gear Table -->
+        <div class="table-container">
+          <h2>Protective Gear (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in protective_gear %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="protective_gear"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="protective_gear"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Protective Gear Subcategories Table -->
+        <div class="table-container">
+          <h2>Protective Gear Subcategories (Available Stock)</h2>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Protective Gear ID</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>For Gender</th>
+                <th>Actions</th>
+                <!-- Actions Column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in protective_gear_subcategories %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.protective_gear_id }}</td>
+                <td>{{ item.type }}</td>
+                <td>${{ "{:.2f}".format(item.price) }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.for_gender }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary action-btn edit-btn"
+                    data-product-type="protective_gear_subcategory"
+                    data-item-id="{{ item.id }}"
+                    data-price="{{ item.price }}"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    method="POST"
+                    action="{{ url_for('remove_item') }}"
+                    style="display: inline"
+                  >
+                    <input
+                      type="hidden"
+                      name="product_type"
+                      value="protective_gear_subcategory"
+                    />
+                    <input type="hidden" name="item_id" value="{{ item.id }}" />
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger action-btn"
+                      onclick="return confirm('Are you sure you want to remove this item?');"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="promotions-section">
+        <h2>Promotions</h2>
+        <button
+          class="btn btn-primary mb-3"
+          data-bs-toggle="modal"
+          data-bs-target="#addPromotionModal"
+        >
+          Add Promotion
+        </button>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Product Type</th>
+              <th>Product ID</th>
+              <th>Product Name</th>
+              <th>Old Price</th>
+              <th>Discounted Price</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for promo in promotions %}
+            <tr>
+              <td>{{ promo.id }}</td>
+              <td>{{ promo.product_type }}</td>
+              <td>{{ promo.product_id }}</td>
+              <td>
+                {% set product = promo.get_product() %} {% if product %} {{
+                product.type }} {% else %} N/A {% endif %}
+              </td>
+              <td>${{ "%.2f"|format(promo.old_price) }}</td>
+              <td>${{ "%.2f"|format(promo.discounted_price) }}</td>
+              <td>{{ promo.start_date.strftime('%Y-%m-%d') }}</td>
+              <td>
+                {% if promo.end_date %} {{ promo.end_date.strftime('%Y-%m-%d')
+                }} {% else %} N/A {% endif %}
+              </td>
+              <td>{{ 'Yes' if promo.is_active() else 'No' }}</td>
+              <td>
+                <form
+                  method="POST"
+                  action="{{ url_for('remove_promotion', promotion_id=promo.id) }}"
+                  style="display: inline"
+                >
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-danger"
+                    onclick="return confirm('Are you sure you want to remove this promotion?');"
+                  >
+                    Remove
+                  </button>
+                </form>
+                {% if promo.is_active() %}
+                <form
+                  method="POST"
+                  action="{{ url_for('deactivate_promotion', promotion_id=promo.id) }}"
+                  style="display: inline"
+                >
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-warning"
+                    onclick="return confirm('Are you sure you want to deactivate this promotion?');"
+                  >
+                    Deactivate
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Invoices Section -->
+      <div id="invoices-section">
+        <h2>Invoices</h2>
+        <!-- Display Number of Invoices -->
+        <p>Total Invoices: {{ invoices|length }}</p>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Invoice ID</th>
+              <th>User ID</th>
+              <th>Product ID</th>
+              <th>Product Type</th>
+              <th>Quantity</th>
+              <th>Price per Unit</th>
+              <th>Total Price</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invoice in invoices %}
+            <tr>
+              <td>{{ invoice.invoice_id }}</td>
+              <td>{{ invoice.user_id }}</td>
+              <td>{{ invoice.product_id }}</td>
+              <td>{{ invoice.product_type }}</td>
+              <td>{{ invoice.quantity }}</td>
+              <td>${{ "{:.2f}".format(invoice.price) }}</td>
+              <td>${{ "{:.2f}".format(invoice.total_price) }}</td>
+              <td>{{ invoice.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+              <td>{{ invoice.status }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Bulk Upload Modal -->
+      <div
+        class="modal fade"
+        id="bulkUploadModal"
+        tabindex="-1"
+        aria-labelledby="bulkUploadModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form
+              action="{{ url_for('bulk_upload') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              onsubmit="return validateBulkUploadForm()"
+            >
+              <div class="modal-header">
+                <h5 class="modal-title" id="bulkUploadModalLabel">
+                  Bulk Upload Products
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="bulk-csv" class="form-label"
+                    >Upload CSV File:</label
+                  >
+                  <input
+                    type="file"
+                    name="bulk_csv"
+                    class="form-control"
+                    id="bulk-csv"
+                    accept=".csv"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <p><strong>CSV Format:</strong></p>
+                  <p>The CSV file should have the following columns:</p>
+                  <ul>
+                    <li>
+                      <code>main_category</code> (e.g., footwear,
+                      activewear_tops)
+                    </li>
+                    <li><code>type</code> (Product Type)</li>
+                    <li><code>price</code> (e.g., 49.99)</li>
+                    <li><code>size</code> (e.g., M, L, XL)</li>
+                    <li><code>quantity</code> (Integer)</li>
+                    <li><code>for_gender</code> (Men, Women, Kids)</li>
+                    <li><code>image_url</code> (URL to the product image)</li>
+                  </ul>
+                  <p>
+                    Ensure that the <code>main_category</code> matches one of
+                    the existing categories.
+                  </p>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Upload</button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Promotion Modal -->
+      <div
+        class="modal fade"
+        id="addPromotionModal"
+        tabindex="-1"
+        aria-labelledby="addPromotionModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form
+              action="{{ url_for('add_promotion') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              onsubmit="return validateAddPromotionForm()"
+            >
+              <div class="modal-header">
+                <h5 class="modal-title" id="addPromotionModalLabel">
+                  Add New Promotion
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="promo-product-type" class="form-label"
+                    >Product Type:</label
+                  >
+                  <select
+                    name="product_type"
+                    class="form-select"
+                    id="promo-product-type"
+                    required
+                  >
+                    <option value="" selected disabled>
+                      Select Product Type
+                    </option>
+                    <option value="FootwearSubCategory">Footwear</option>
+                    <option value="ActivewearSubCategory">
+                      Activewear Tops
+                    </option>
+                    <option value="BottomsSubCategory">Bottoms</option>
+                    <option value="OuterwearSubCategory">Outerwear</option>
+                    <option value="RecoverySubCategory">
+                      Recovery & Wellness
+                    </option>
+                    <option value="AccessoriesSubCategory">Accessories</option>
+                    <option value="SwimwearSubCategory">Swimwear</option>
+                    <option value="CompressionSubCategory">
+                      Compression Wear
+                    </option>
+                    <option value="SpecialtySportswearSubCategory">
+                      Specialty Sportswear
+                    </option>
+                    <option value="ProtectiveGearSubCategory">
+                      Protective Gear
+                    </option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="promo-product-id" class="form-label"
+                    >Product:</label
+                  >
+                  <select
+                    name="product_id"
+                    class="form-select"
+                    id="promo-product-id"
+                    required
+                  >
+                    <option value="" selected disabled>Select Product</option>
+                    <!-- Options populated dynamically via JavaScript -->
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="discounted_price" class="form-label"
+                    >Discounted Price:</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="discounted_price"
+                    class="form-control"
+                    id="discounted_price"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="start_date" class="form-label">Start Date:</label>
+                  <input
+                    type="date"
+                    name="start_date"
+                    class="form-control"
+                    id="start_date"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="end_date" class="form-label"
+                    >End Date (Optional):</label
+                  >
+                  <input
+                    type="date"
+                    name="end_date"
+                    class="form-control"
+                    id="end_date"
+                  />
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">
+                  Add Promotion
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Price and Image Modal -->
+      <div
+        class="modal fade"
+        id="editPriceModal"
+        tabindex="-1"
+        aria-labelledby="editPriceModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form
+              method="POST"
+              action="{{ url_for('edit_item') }}"
+              enctype="multipart/form-data"
+              onsubmit="return validateEditItemForm()"
+            >
+              <div class="modal-header">
+                <h5 class="modal-title" id="editPriceModalLabel">
+                  Edit Item Details
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <!-- Hidden Inputs to Identify the Item -->
+                <input
+                  type="hidden"
+                  name="product_type"
+                  id="modal-product-type"
+                  value=""
+                />
+                <input
+                  type="hidden"
+                  name="item_id"
+                  id="modal-item-id"
+                  value=""
+                />
+
+                <!-- Display Current Price -->
+                <div class="mb-3">
+                  <label for="current-price" class="form-label"
+                    >Current Price</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="current-price"
+                    readonly
+                  />
+                </div>
+
+                <!-- New Price Input -->
+                <div class="mb-3">
+                  <label for="new-price" class="form-label">New Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control"
+                    id="new-price"
+                    name="new_price"
+                    required
+                  />
+                </div>
+
+                <!-- New Image Upload -->
+                <div class="mb-3">
+                  <label for="new-image" class="form-label"
+                    >New Product Image</label
+                  >
+                  <input
+                    type="file"
+                    name="new_image"
+                    class="form-control"
+                    id="new-image"
+                    accept="image/*"
+                  />
+                  <small class="form-text text-muted">
+                    Leave blank to keep the current image.
+                  </small>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Update Item
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Product Modal -->
+      <div
+        class="modal fade"
+        id="addProductModal"
+        tabindex="-1"
+        aria-labelledby="addProductModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form
+              action="{{ url_for('add_product') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              onsubmit="return validateAddProductForm()"
+            >
+              <div class="modal-header">
+                <h5 class="modal-title" id="addProductModalLabel">
+                  Add New Product
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="main_category" class="form-label"
+                    >Main Category:</label
+                  >
+                  <select
+                    name="main_category"
+                    class="form-select"
+                    id="main-category"
+                    required
+                  >
+                    <option value="" selected disabled>Select Category</option>
+                    <option value="footwear">Footwear</option>
+                    <option value="activewear_tops">Activewear Tops</option>
+                    <option value="bottoms">Bottoms</option>
+                    <option value="outerwear">Outerwear</option>
+                    <option value="recovery_and_wellness">
+                      Recovery & Wellness
+                    </option>
+                    <option value="accessories">Accessories</option>
+                    <option value="swimwear">Swimwear</option>
+                    <option value="compression_wear">Compression Wear</option>
+                    <option value="specialty_sportswear">
+                      Specialty Sportswear
+                    </option>
+                    <option value="protective_gear">Protective Gear</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="sub-category" class="form-label"
+                    >Subcategory:</label
+                  >
+                  <select
+                    name="sub_category"
+                    class="form-select"
+                    id="sub-category"
+                    required
+                  >
+                    <option value="" selected disabled>
+                      Select Subcategory
+                    </option>
+                    <!-- Options populated dynamically via JavaScript -->
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="type" class="form-label">Product Type:</label>
+                  <input
+                    type="text"
+                    name="type"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="price" class="form-label">Price:</label>
+                  <input
+                    type="number"
+                    name="price"
+                    step="0.01"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="size" class="form-label">Size:</label>
+                  <input
+                    type="text"
+                    name="size"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="quantity" class="form-label">Quantity:</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    class="form-control"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="for_gender" class="form-label">Gender:</label>
+                  <select name="for_gender" class="form-select" required>
+                    <option value="" selected disabled>Select Gender</option>
+                    <option value="Men">Men</option>
+                    <option value="Women">Women</option>
+                    <option value="Kids">Kids</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="image" class="form-label">Product Image:</label>
+                  <input
+                    type="file"
+                    name="image"
+                    class="form-control"
+                    accept="image/*"
+                    required
+                  />
+                  <small class="form-text text-muted">
+                    Maximum size: 2MB.
+                  </small>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">
+                  Add Product
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bootstrap JS and dependencies -->
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+      <script>
+            // Toggle Stock Tables
+            document
+              .getElementById("toggle-stock")
+              .addEventListener("click", function () {
+                var tablesDiv = document.getElementById("stock-tables");
+                var button = document.getElementById("toggle-stock");
+                if (
+                  tablesDiv.style.display === "none" ||
+                  tablesDiv.style.display === ""
+                ) {
+                  tablesDiv.style.display = "block";
+                  button.textContent = "Hide Stock";
+                } else {
+                  tablesDiv.style.display = "none";
+                  button.textContent = "Show Stock";
+                }
+              });
+
+            // Toggle Promotions Section
+            document
+              .getElementById("toggle-promotions")
+              .addEventListener("click", function () {
+                var promotionsSection = document.getElementById("promotions-section");
+                var button = document.getElementById("toggle-promotions");
+                if (
+                  promotionsSection.style.display === "none" ||
+                  promotionsSection.style.display === ""
+                ) {
+                  promotionsSection.style.display = "block";
+                  button.textContent = "Hide Promotions";
+                } else {
+                  promotionsSection.style.display = "none";
+                  button.textContent = "Show Promotions";
+                }
+              });
+
+            // Toggle Invoices Section
+            document
+              .getElementById("toggle-invoices")
+              .addEventListener("click", function () {
+                var invoicesSection = document.getElementById("invoices-section");
+                var button = document.getElementById("toggle-invoices");
+                if (
+                  invoicesSection.style.display === "none" ||
+                  invoicesSection.style.display === ""
+                ) {
+                  invoicesSection.style.display = "block";
+                  button.textContent = "Hide Invoices";
+                } else {
+                  invoicesSection.style.display = "none";
+                  button.textContent = "Show Invoices";
+                }
+              });
+
+            // Initialize Bootstrap Modals
+            var editPriceModal = new bootstrap.Modal(document.getElementById('editPriceModal'), {});
+            var addPromotionModal = new bootstrap.Modal(document.getElementById('addPromotionModal'), {});
+
+            // Handle Edit Button Clicks
+            var editButtons = document.querySelectorAll('.edit-btn');
+
+            editButtons.forEach(function(button) {
+              button.addEventListener('click', function() {
+                var productType = this.getAttribute('data-product-type');
+                var itemId = this.getAttribute('data-item-id');
+                var price = this.getAttribute('data-price');
+
+                // Set modal fields
+                document.getElementById('modal-product-type').value = productType;
+                document.getElementById('modal-item-id').value = itemId;
+                document.getElementById('current-price').value = '$' + parseFloat(price).toFixed(2);
+                document.getElementById('new-price').value = parseFloat(price).toFixed(2);
+
+                // Reset the image input
+                document.getElementById('new-image').value = '';
+
+                // Show modal
+                editPriceModal.show();
+              });
+            });
+
+            // Add Promotion Modal Functionality
+            document.getElementById('promo-product-type').addEventListener('change', function() {
+              var selectedType = this.value;
+              var productIdSelect = document.getElementById('promo-product-id');
+              productIdSelect.innerHTML = '<option value="" selected disabled>Select Product</option>';
+
+              if (selectedType) {
+                // Define subcategories data
+                var subcategoriesData = {
+                  "FootwearSubCategory": [
+                    {% for sub in footwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "ActivewearSubCategory": [
+                    {% for sub in activewear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "BottomsSubCategory": [
+                    {% for sub in bottoms_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "OuterwearSubCategory": [
+                    {% for sub in outerwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "RecoverySubCategory": [
+                    {% for sub in recovery_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "AccessoriesSubCategory": [
+                    {% for sub in accessories_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "SwimwearSubCategory": [
+                    {% for sub in swimwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "CompressionSubCategory": [
+                    {% for sub in compression_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "SpecialtySportswearSubCategory": [
+                    {% for sub in specialty_sportswear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "ProtectiveGearSubCategory": [
+                    {% for sub in protective_gear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ]
+                };
+
+                // Populate products based on selectedType
+                var products = subcategoriesData[selectedType];
+                if (products) {
+                  products.forEach(function(product) {
+                    var option = document.createElement('option');
+                    option.value = product.id;
+                    option.text = product.type + ' (ID: ' + product.id + ')';
+                    productIdSelect.appendChild(option);
+                  });
+                }
+              }
+            });
+
+            // Add Product Modal Functionality
+            document.getElementById('main-category').addEventListener('change', function() {
+              var selectedCategory = this.value;
+              var subCategorySelect = document.getElementById('sub-category');
+              subCategorySelect.innerHTML = '<option value="" selected disabled>Select Subcategory</option>';
+
+              if (selectedCategory) {
+                // Define subcategories data
+                var subcategoriesData = {
+                  "footwear": [
+                    {% for sub in footwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "activewear_tops": [
+                    {% for sub in activewear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "bottoms": [
+                    {% for sub in bottoms_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "outerwear": [
+                    {% for sub in outerwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "recovery_and_wellness": [
+                    {% for sub in recovery_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "accessories": [
+                    {% for sub in accessories_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "swimwear": [
+                    {% for sub in swimwear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "compression_wear": [
+                    {% for sub in compression_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "specialty_sportswear": [
+                    {% for sub in specialty_sportswear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ],
+                  "protective_gear": [
+                    {% for sub in protective_gear_subcategories %}
+                      {"id": {{ sub.id }}, "type": "{{ sub.type | escape }}"}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                  ]
+                };
+
+                // Populate subcategories
+                var subcats = subcategoriesData[selectedCategory];
+                if (subcats) {
+                  subcats.forEach(function(subcat) {
+                    var option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.text = subcat.type;
+                    subCategorySelect.appendChild(option);
+                  });
+                }
+              }
+            });
+
+            // Form Validation Functions (Optional)
+            function validateBulkUploadForm() {
+              var fileInput = document.getElementById('bulk-csv');
+              var filePath = fileInput.value;
+              var allowedExtensions = /(\.csv)$/i;
+              if (!allowedExtensions.exec(filePath)) {
+                alert('Please upload a CSV file.');
+                fileInput.value = '';
+                return false;
+              }
+              return true;
+            }
+
+            function validateAddPromotionForm() {
+              var discountedPrice = parseFloat(document.getElementById('discounted_price').value);
+              if (discountedPrice <= 0) {
+                alert('Discounted price must be greater than zero.');
+                return false;
+              }
+              return true;
+            }
+
+            function validateAddProductForm() {
+              var price = parseFloat(document.querySelector('input[name="price"]').value);
+              var quantity = parseInt(document.querySelector('input[name="quantity"]').value, 10);
+              if (price <= 0) {
+                alert('Price must be greater than zero.');
+                return false;
+              }
+              if (quantity < 0) {
+                alert('Quantity cannot be negative.');
+                return false;
+              }
+              return true;
+            }
+
+            function validateEditItemForm() {
+              var newPrice = parseFloat(document.getElementById('new-price').value);
+              if (newPrice <= 0) {
+                alert('New price must be greater than zero.');
+                return false;
+              }
+              return true;
+            }
+
+            document.getElementById("toggle-returns").addEventListener("click", function () {
+            var returnsSection = document.getElementById("returns-section");
+            var button = document.getElementById("toggle-returns");
+            if (returnsSection.style.display === "none" || returnsSection.style.display === "") {
+                returnsSection.style.display = "block";
+                button.textContent = "Hide Returns";
+            } else {
+                returnsSection.style.display = "none";
+                button.textContent = "Show Returns";
+            }
+        });
+      </script>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+<!-- templates/generate_report.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Generate Inventory Report</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Generate Inventory Report</h1>
+      <div class="report-generator">
+        <form method="POST">
+          <p>
+            Click the button below to generate a comprehensive inventory report
+            including:
+          </p>
+          <ul>
+            <li>Most popular products</li>
+            <li>Inventory turnover analysis</li>
+            <li>Future demand predictions</li>
+          </ul>
+          <button type="submit" class="btn btn-primary">Generate Report</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
